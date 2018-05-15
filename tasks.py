@@ -16,7 +16,6 @@ app = Celery('tasks',backend='rpc://', broker='pyamqp://guest@localhost//')
 token = '...'
 dbx = dropbox.Dropbox(token)
 
-
 # Twitter access data
 consumer_key = '...'
 consumer_secret = '...'
@@ -77,7 +76,8 @@ def Response():
         except tweepy.error.TweepError as e:
             print("Rescomendacion ya realizada")
 
-
+@periodic_task(run_every=crontab(hour="1"))
+#@app_task
 def Followers():
     print ("-------------------------")
     print ("|| Lista de seguidores ||")
@@ -104,4 +104,3 @@ def Followers():
     response = dbx.files_upload(data, RemoteFile, mode=dropbox.files.WriteMode.overwrite)
     print("Archivo Dropbox actualizado")
 
-Followers()
