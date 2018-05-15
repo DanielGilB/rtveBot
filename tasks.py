@@ -5,16 +5,23 @@ import urllib.request
 import random
 from celery.task.schedules import crontab
 from celery.decorators import periodic_task
+import dropbox
+import tempfile
 
 
 #using Celery with RabbitMQ
 app = Celery('tasks',backend='rpc://', broker='pyamqp://guest@localhost//')
 
+#dropbox access data
+token = '...'
+dbx = dropbox.Dropbox(token)
+
+
 # Twitter access data
-consumer_key = ' '
-consumer_secret = ' '
-access_token = ' '
-access_token_secret = ' '
+consumer_key = '...'
+consumer_secret = '...'
+access_token = '...'
+access_token_secret = '...'
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
@@ -70,3 +77,31 @@ def Response():
         except tweepy.error.TweepError as e:
             print("Rescomendacion ya realizada")
 
+
+def Followers():
+    print ("-------------------------")
+    print ("|| Lista de seguidores ||")
+    print ("-------------------------")
+    print ("Tienes %s seguidores" % api.me().followers_count)
+
+    LocalFile = "followers.txt"
+    
+    try:
+        file = open(LocalFile, 'rb')
+    except IOError:
+        print ("Generando %s" % LocalFile)
+        file = open(LocalFile, 'w')
+        file = open(LocalFile, 'rb')
+    
+
+    with open(LocalFile, 'w') as f:
+        for follower in tweepy.Cursor(api.followers).items():
+            f.write(follower.screen_name + '\n')
+    
+    data = file.read()
+
+    RemoteFile = "/" + LocalFile
+    response = dbx.files_upload(data, RemoteFile, mode=dropbox.files.WriteMode.overwrite)
+    print("Archivo Dropbox actualizado")
+
+Followers()
