@@ -3,18 +3,15 @@ import tweepy
 import json
 import urllib.request
 import random
-from celery.task.schedules import crontab
+#from celery.task.schedules import crontab
 from celery.decorators import periodic_task
 import dropbox
 import tempfile
 
-
-#using Celery with RabbitMQ
-app = Celery('tasks',backend='rpc://', broker='pyamqp://guest@localhost//')
-
 #dropbox access data
-token = '...'
+token = "..."
 dbx = dropbox.Dropbox(token)
+
 
 # Twitter access data
 consumer_key = '...'
@@ -33,9 +30,23 @@ print ("----------------------------------------------------")
 print ("|| Bot lanzado en la cuenta de twitter: %s ||" % botName) 
 print ("----------------------------------------------------")
 
+#using Celery with RabbitMQ
+app = Celery('tasks',backend='rpc://', broker='pyamqp://guest@localhost//')
 
-@periodic_task(run_every=crontab(hour="1"))
-#@app.task
+#@app.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    # Calls UpdateNews() every 30 seconds.
+    sender.add_periodic_task(30.0, UpdateNews())
+
+    # Calls Response() every 10 seconds
+    sender.add_periodic_task(10.0, Response(), name)
+
+    # Calls Followers() every 30 seconds
+    sender.add_periodic_task(30.0, Followers())
+
+  
+#@periodic_task(run_every=crontab(hour="1"))
+@app.task
 def UpdateNews():
     print ("------------------------------------------------------------------")
     print ("|| Procediendo a publicar las ultimas 20 noticias mas populares ||")
@@ -76,8 +87,8 @@ def Response():
         except tweepy.error.TweepError as e:
             print("Rescomendacion ya realizada")
 
-@periodic_task(run_every=crontab(hour="1"))
-#@app_task
+#@periodic_task(run_every=crontab(hour="1"))
+@app.task
 def Followers():
     print ("-------------------------")
     print ("|| Lista de seguidores ||")
@@ -103,4 +114,3 @@ def Followers():
     RemoteFile = "/" + LocalFile
     response = dbx.files_upload(data, RemoteFile, mode=dropbox.files.WriteMode.overwrite)
     print("Archivo Dropbox actualizado")
-
